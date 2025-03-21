@@ -41,20 +41,13 @@ class DatabaseLoader:
 
     def get_image(self, plate, well, channel):
         cursor = self.conn.cursor()
+        condition = self._get_where_from_well(plate, well, channel)
 
-        if type(well) == int:  # searching by site
-            command = f"SELECT path_unmixed FROM images WHERE plate = {plate} AND site = {well} AND channel_num = {channel}"
-            cursor.execute(command)
-            rows = cursor.fetchall()
-            assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
-            path = rows[0][0]
-        elif type(well) == tuple:
-            row, column, field = well
-            command = f"SELECT path_unmixed FROM images WHERE plate = {plate} AND row = '{row}' AND column = {column} AND field = {field} AND channel_num = {channel}"
-            cursor.execute(command)
-            rows = cursor.fetchall()
-            assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
-            path = rows[0][0]
+        command = f"SELECT path_unmixed FROM images WHERE {condition}"
+        cursor.execute(command)
+        rows = cursor.fetchall()
+        assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
+        path = rows[0][0]
 
         full_path = self.data_root / path
 
@@ -62,38 +55,60 @@ class DatabaseLoader:
 
     def get_treatment(self, plate, well, channel):
         cursor = self.conn.cursor()
+        condition = self._get_where_from_well(plate, well, channel)
 
-        if type(well) == int:  # searching by site
-            command = f"SELECT treatment FROM images WHERE plate = {plate} AND site = {well} AND channel_num = {channel}"
-            cursor.execute(command)
-            rows = cursor.fetchall()
-            assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
-            treatment = rows[0][0]
-        elif type(well) == tuple:
-            row, column, field = well
-            command = f"SELECT treatment FROM images WHERE plate = {plate} AND row = '{row}' AND column = {column} AND field = {field} AND channel_num = {channel}"
-            cursor.execute(command)
-            rows = cursor.fetchall()
-            assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
-            treatment = rows[0][0]
+        command = f"SELECT treatment FROM images WHERE {condition}"
+        cursor.execute(command)
+        rows = cursor.fetchall()
+        assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
+        treatment = rows[0][0]
 
         return treatment
 
     def get_line(self, plate, well, channel):
         cursor = self.conn.cursor()
+        condition = self._get_where_from_well(plate, well, channel)
 
-        if type(well) == int:  # searching by site
-            command = f"SELECT line FROM images WHERE plate = {plate} AND site = {well} AND channel_num = {channel}"
-            cursor.execute(command)
-            rows = cursor.fetchall()
-            assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
-            line = rows[0][0]
-        elif type(well) == tuple:
-            row, column, field = well
-            command = f"SELECT line FROM images WHERE plate = {plate} AND row = '{row}' AND column = {column} AND field = {field} AND channel_num = {channel}"
-            cursor.execute(command)
-            rows = cursor.fetchall()
-            assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
-            line = rows[0][0]
+        command = f"SELECT line FROM images WHERE {condition}"
+        cursor.execute(command)
+        rows = cursor.fetchall()
+        assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
+        line = rows[0][0]
 
         return line
+    
+    def get_disease_type(self, plate, well, channel):
+        cursor = self.conn.cursor()
+        condition = self._get_where_from_well(plate, well, channel)
+
+        command = f"SELECT disease_type FROM images WHERE {condition}"
+        cursor.execute(command)
+        rows = cursor.fetchall()
+        assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
+        dtype = rows[0][0]
+
+        return dtype
+    
+    def _get_where_from_well(self, plate, well, channel):
+
+        if type(well) == int:  # searching by site
+            condition = f"plate = {plate} AND site = {well} AND channel_num = {channel}"
+            
+        elif type(well) == tuple:
+            row, column, field = well
+            condition = f"plate = {plate} AND row = '{row}' AND column = {column} AND field = {field} AND channel_num = {channel}"
+            
+        return condition
+
+    
+    def get_well_from_site(self, plate, site, image_session=None):
+        if image_session is None:
+            print("WARNING: assuming image_session = 1")
+            image_session = 1
+
+        cursor = self.conn.cursor()
+        command = f"SELECT row, column, field FROM images WHERE plate = {plate} AND site = {site} AND image_session = {image_session}"
+        cursor.execute(command)
+        rows = cursor.fetchall()
+
+        return rows[0]
