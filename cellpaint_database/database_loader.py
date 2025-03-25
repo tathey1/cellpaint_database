@@ -53,6 +53,15 @@ class DatabaseLoader:
 
         return io.imread(full_path)
 
+    def get_image_loc(self, plate, well, channel, loc, rad=10):
+
+        image = self.get_image(plate, well, channel)
+
+        coord_left = [np.amax([l - rad, 0]) for l in loc]
+        coord_right = [np.amin([l + rad, image.shape[i]]) for i, l in enumerate(loc)]
+
+        return image[coord_left[0] : coord_right[0], coord_left[1] : coord_right[1]]
+
     def get_treatment(self, plate, well, channel):
         cursor = self.conn.cursor()
         condition = self._get_where_from_well(plate, well, channel)
@@ -76,7 +85,7 @@ class DatabaseLoader:
         line = rows[0][0]
 
         return line
-    
+
     def get_disease_type(self, plate, well, channel):
         cursor = self.conn.cursor()
         condition = self._get_where_from_well(plate, well, channel)
@@ -88,19 +97,23 @@ class DatabaseLoader:
         dtype = rows[0][0]
 
         return dtype
-    
+
     def _get_where_from_well(self, plate, well, channel):
 
         if type(well) == int:  # searching by site
             condition = f"plate = {plate} AND site = {well} AND channel_num = {channel}"
-            
+
         elif type(well) == tuple:
             row, column, field = well
             condition = f"plate = {plate} AND row = '{row}' AND column = {column} AND field = {field} AND channel_num = {channel}"
-            
+
+        else:
+            raise ValueError(
+                "Well must be either an int (site number) or a tuple (row (str), column (int), field (int))"
+            )
+
         return condition
 
-    
     def get_well_from_site(self, plate, site, image_session=None):
         if image_session is None:
             print("WARNING: assuming image_session = 1")
